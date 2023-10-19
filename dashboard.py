@@ -38,16 +38,16 @@ fig_kinEng.add_hline(y = ave_KinEng, line_dash = "dot", annotation_text = f'Aver
 
 # POTENTIAL ENERGY
 fig_potEng = px.line(data, x = 'Time', y = 'PotEng', color_discrete_sequence = ["rgb(160, 106, 242)"])
-fig_potEng.add_hline(y = ave_PotEng, line_dash = "dot", annotation_text = f'Average PotEng: {ave_PotEng:.2f}', annotation_position="top right")
 
-# TOTAL ENERGY
-fig_totEng = px.line(data, x = 'Time', y = 'TotEng', color_discrete_sequence = ["rgb(243, 164, 103)"])
-fig_totEng.add_hline(y = ave_TotEng, line_dash = "dot", annotation_text = f'Average TotEng: {ave_TotEng:.2f}', annotation_position="top right")
-
-# VOLUME
-fig_volume = px.line(data, x = 'Time', y = 'Volume', color_discrete_sequence = ["rgb(97, 209, 239)"])
-fig_volume.add_hline(y = ave_Volume, line_dash = "dot", annotation_text = f'Average Volume: {ave_Volume:.2f}', annotation_position="top right")
-
+# BASIC STATS
+stats_df = data.iloc[:, 2:].agg(['mean', 'sem'])
+# Transpose the result for better visualization
+stats_df = stats_df.transpose().reset_index()
+stats_df.columns = ['Variable', 'Mean', 'Error']
+stats_df['Mean'] = stats_df['Mean'].round(5)
+stats_df['Error'] = stats_df['Error'].round(5)
+stats_df['Upper'] = (stats_df['Mean'] + stats_df['Error']).round(5)
+stats_df['Lower'] = (stats_df['Mean'] - stats_df['Error']).round(5)
 
 
 # App layout
@@ -85,13 +85,27 @@ app.layout = html.Div([
         ),
     ]),
 
-
+    # Row 3
     html.Div(className='row', children=[
-        dcc.RangeSlider(data['Time'].min(), data['Time'].max(), 100, value=[data['Time'].min(), data['Time'].max()], id='range-slider'),
-        dcc.Checklist(options = ['Temp', 'Density', 'KinEng', 'PotEng', 'TotEng', 'Volume'], value = ['Temp', 'Density', 'KinEng', 'PotEng', 'TotEng'], inline = True, id='line-variables'),
-        dcc.Checklist(options = ['Averages'], inline = True, id='line-averages'),
-    ]),
-    dcc.Graph(figure={}, id='all-variables'),
+        html.Div(className='row', children=[
+            dcc.RangeSlider(data['Time'].min(), data['Time'].max()/2, 100, value=[data['Time'].min(), data['Time'].max()], id='range-slider')
+        ],
+        style = {'width': '90%', 'margin': 'auto'}),
+
+        html.Div(className='two columns', children=[
+            dcc.Checklist(options = ['Temp', 'Density', 'KinEng', 'PotEng', 'TotEng', 'Volume'], value = ['Temp', 'Density', 'KinEng', 'PotEng', 'TotEng'], inline = True, id='line-variables'),
+            dcc.Checklist(options = ['Averages'], inline = True, id='line-averages'),
+
+            dcc.Graph(figure={}, id='all-variables')
+        ],
+        style = {'width': '45%', 'margin': 'auto'}),
+
+        html.Div(className='two columns', children = [
+            dash_table.DataTable(data=stats_df.to_dict('records'), id = 'stats_df')
+        ],
+        style = {'width': '45%'})
+    
+    ])
 
 ])
 
