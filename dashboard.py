@@ -14,30 +14,21 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = Dash(__name__, external_stylesheets = external_stylesheets)
 
 
-
-# AVERAGES
-ave_Temp = data['Temp'].mean()
-ave_Density = data['Density'].mean()
-ave_KinEng = data['KinEng'].mean()
-ave_PotEng = data['PotEng'].mean()
-ave_TotEng = data['TotEng'].mean()
-ave_Volume = data['Volume'].mean()
-
 # FIGURES
-# TEMPERATURE
-fig_temp = px.line(data, x = 'Time', y = 'Temp', color_discrete_sequence = ["rgb(99, 113, 241)"])
-fig_temp.add_hline(y = ave_Temp, line_dash = "dot", annotation_text = f'Average Temp: {ave_Temp:.2f}', annotation_position="top right")
+def fig_parameter(parameter: str, colour: str):
+    average = data[parameter].mean()
 
-# DENSITY
-fig_density = px.line(data, x = 'Time', y = 'Density', color_discrete_sequence = ["rgb(222, 96, 70)"])
-fig_density.add_hline(y = ave_Density, line_dash = "dot", annotation_text = f'Average Density: {ave_Density:.2f}', annotation_position="top right")
+    # Create line plot
+    fig = px.line(data, x = 'Time', y = parameter, color_discrete_sequence = [colour])
 
-# KINETIC ENERGY
-fig_kinEng = px.line(data, x = 'Time', y = 'KinEng', color_discrete_sequence = ["rgb(91, 200, 154)"])
-fig_kinEng.add_hline(y = ave_KinEng, line_dash = "dot", annotation_text = f'Average KinEng: {ave_KinEng:.2f}', annotation_position="top right")
+    # Add average line
+    fig.add_hline(y = average, line_dash = "dot", annotation_text = f'Average {parameter}: {average:.2f}', annotation_position="top right")
+    
+    # Average error region
+    fig.add_hrect(y0 = average - data.sem()[parameter], y1 = average + data.sem()[parameter], line_width=0, fillcolor="red", opacity=0.2)
 
-# POTENTIAL ENERGY
-fig_potEng = px.line(data, x = 'Time', y = 'PotEng', color_discrete_sequence = ["rgb(160, 106, 242)"])
+    return fig
+
 
 # BASIC STATS
 stats_df = data.iloc[:, 2:].agg(['mean', 'sem'])
@@ -57,30 +48,30 @@ app.layout = html.Div([
 
     # Row 1
     html.Div(className='row', children=[
-        html.Div(className='three columns', children=[dcc.Graph(figure=fig_temp)],
+        html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter('Temp', 'rgb(99, 113, 241)'))],
         style = {'width': '30%'}
         ),
 
-        html.Div(className='three columns', children=[dcc.Graph(figure=fig_density)],
+        html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter('Density', 'rgb(222, 96, 70)'))],
         style = {'width': '30%'}
         ),
 
-        html.Div(className='three columns', children=[dcc.Graph(figure=fig_kinEng)],
+        html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter('KinEng', 'rgb(91, 200, 154)'))],
         style = {'width': '30%'}
         ),
     ]),
 
     # Row 2
     html.Div(className='row', children=[
-        html.Div(className='three columns', children=[dcc.Graph(figure=fig_potEng)],
+        html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter('PotEng', 'rgb(160, 106, 242)'))],
         style = {'width': '30%'}
         ),
 
-        html.Div(className='three columns', children=[dcc.Graph(figure=fig_totEng)],
+        html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter('TotEng', 'rgb(243, 164, 103)'))],
         style = {'width': '30%'}
         ),
 
-        html.Div(className='three columns', children=[dcc.Graph(figure=fig_volume)],
+        html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter('Volume', 'rgb(97, 209, 239)'))],
         style = {'width': '30%'}
         ),
     ]),
