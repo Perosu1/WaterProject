@@ -1,5 +1,7 @@
 data.txt
 data.tmp
+*.out
+*.lammpstrj
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
