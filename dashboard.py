@@ -4,8 +4,11 @@ import plotly.express as px
 
 # Import data
 data = pd.read_csv(
-    'data.txt',
+    'data.log',
     sep = '\s+',
+    engine = 'python',
+    skiprows = 37,
+    skipfooter = 48,
     header = 0
 )
 
