@@ -112,7 +112,7 @@ app.layout = html.Div([
                         dcc.Checklist(options = ['Temp', 'Density', 'KinEng', 'PotEng', 'TotEng', 'Volume'], value = ['Temp', 'Density', 'KinEng', 'PotEng', 'TotEng'], inline = True, id='line-variables'),
                         dcc.Checklist(options = ['Averages'], inline = True, id='line-averages'),
 
-                        dcc.Graph(figure={}, id='all-variables')
+                        dcc.Graph(figure = {}, id = 'all-variables')
                     ],
                     style = {'width': '45%', 'margin': 'auto'}),
 
@@ -132,9 +132,18 @@ app.layout = html.Div([
 
         dcc.Tab(label='RDF', children=[
             html.Div(className='row', children=[
-                dcc.Graph(figure = px.line(data_rdf, x = 'Distance', y =  rdf_column_names[2:]))
-            ],
-            style = {'width': '50%'}),
+                html.Div(className='two columns', children=[
+                    html.H2('RDF', style = {'textAlign': 'center', 'color': '#07215d'}),
+                    dcc.Graph(figure = px.line(data_rdf, x = 'Distance', y =  [var for var in rdf_column_names if var.endswith("RDF")]))
+                ],
+                style = {'width': '45%'}),
+
+                html.Div(className='two columns', children=[
+                    html.H2('Coordination number', style = {'textAlign': 'center', 'color': '#07215d'}),
+                    dcc.Graph(figure = px.line(data_rdf, x = 'Distance', y =  [var for var in rdf_column_names if var.endswith("CN")]))
+                ],
+                style = {'width': '45%'})
+            ])
         ]),
 
     ])
@@ -149,7 +158,7 @@ app.layout = html.Div([
     Input(component_id = 'range-slider', component_property = 'value'),
     Input(component_id = 'line-averages', component_property = 'value'),
 )
-def update_graph(col_chosen, range, average):
+def update_variable_graph(col_chosen, range, average):
 
     # Change data range
     range_data = data_log.iloc[int(range[0]/10):,:]
