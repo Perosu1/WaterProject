@@ -21,16 +21,7 @@ data_msd = pd.read_csv(
 )
 msd_column_names = ["TimeStep", "<x^2>", "<y^2>", "<z^2>", "<R^2>"]
 data_msd.columns = msd_column_names
-
-
-data_rdf = pd.read_csv(
-    'RDF.out',
-    sep = '\s+',
-    skiprows = 4,
-    header = None
-)
-rdf_column_names = ["Row", "Distance", "HH RDF", "HH CN", "HO RDF", "HO CN", "OH RDF", "OH CN", "OO RDF", "OO CN"]
-data_rdf.columns = rdf_column_names
+data_msd['Time'] = data_msd['TimeStep'] * 10 ** -15
 
 # Initialize the app
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
@@ -124,10 +115,19 @@ app.layout = html.Div([
         ]),
 
         dcc.Tab(label='MSD', children=[
-            html.Div(className='row', children=[
-                dcc.Graph(figure = px.line(data_msd, x = 'TimeStep', y =  msd_column_names[1:]))
-            ],
-            style = {'width': '50%'}),
+            html.Div(className='row', children = [
+                html.Div(className='two columns', children=[
+                    dcc.Graph(figure = {}, id = 'msd_figure')
+                ],
+                style = {'width': '60%'}),
+
+                html.H2('Change R² parameters', style = {'textAlign': 'center', 'color': '#07215d'}),
+                html.Div(className='two columns', children = [
+                    dcc.Input(id = "msd_min", type = "number", placeholder="Left offset", step = 10 ** -13),
+                    html.P({}, id = 'msd_d')
+                ],
+                style = {'width': '20%'})
+            ])
         ]),
 
         dcc.Tab(label='RDF', children=[
@@ -150,7 +150,7 @@ app.layout = html.Div([
 ])
 
 
-# CONTROLS
+# VARIABLES CONTROLS
 @callback(
     Output(component_id = 'all-variables', component_property = 'figure'),
 
@@ -172,6 +172,27 @@ def update_variable_graph(col_chosen, range, average):
             fig.add_hline(y = range_average, line_dash = "dot", annotation_text = f'Average {i}: {range_average:.2f}', annotation_position="top right")
 
     return fig
+
+
+# MSD CONTROLS
+@callback(
+    Output(component_id = 'msd_figure', component_property = 'figure'),
+    Output(component_id = 'msd_d', component_property = 'children'),
+
+    Input(component_id = 'msd_min', component_property = 'value')
+)
+def update_msd_figure(msd_min):
+    if msd_min is not None:
+        df_filtered = data_msd[data_msd['Time'] >= msd_min]
+    else:
+        df_filtered = data_msd
+
+    fig = px.scatter(df_filtered, x = 'Time', y = msd_column_names[1:], trendline = 'ols')
+    model = px.get_trendline_results(fig)
+
+    D = f"D = {'{:.2e}'.format(model.iloc[3]['px_fit_results'].params[1] / 6)}"
+
+    return fig, D
 
 
 
