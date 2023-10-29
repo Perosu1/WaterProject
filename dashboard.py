@@ -11,11 +11,19 @@ app = Dash(__name__, external_stylesheets = external_stylesheets)
 
 
 # FIGURES
-def fig_parameter(data, parameter: str, colour: str):
+def fig_parameter(data: pd.DataFrame, units: str, parameter: str, colour: str):
     average = data[parameter].mean()
 
     # Create line plot
-    fig = px.line(data, x = 'Time', y = parameter, color_discrete_sequence = [colour])
+    fig = px.line(
+        data,
+        x = 'Time',
+        y = parameter,
+        color_discrete_sequence = [colour],
+        labels = {
+            parameter: f"{parameter} ({units})"
+        }
+    )
 
     # Add average line
     fig.add_hline(y = average, line_dash = "dot", annotation_text = f'Average {parameter}: {average:.2f}', annotation_position="top right")
@@ -33,6 +41,7 @@ app.layout = html.Div([
     dcc.Tabs([
         dcc.Tab(label='Variables', children=[
             dcc.Upload(html.Button('Upload LOG'), id = 'LOG_Upload', multiple = False),
+            dcc.Input(id = 'log_min', type = 'number', placeholder = 'Left offset', step = 100),
             html.Div(id = 'LOG_Output'),
         ]),
 
@@ -70,8 +79,6 @@ app.layout = html.Div([
                 ],
                 style = {'width': '45%'})
         ]),
-
-            # html.Div(id ='RDF_Output')
         ]),
 
     ])
@@ -83,8 +90,11 @@ app.layout = html.Div([
     Output(component_id = 'LOG_Output', component_property = 'children'),
 
     Input(component_id = 'LOG_Upload', component_property = 'contents'),
+    Input(component_id = 'log_min', component_property = 'value')
 )
-def update_variable_graph(contents):
+def update_variable_graph(contents, log_min):
+    number_of_molecules = 512
+
     if contents is not None:
         content_type, content_string = contents.split(',')
         decoded = base64.b64decode(content_string)
@@ -98,6 +108,14 @@ def update_variable_graph(contents):
             header = 0
         )
 
+        data_log['KinEng'] = data_log['KinEng'] * 4.184 / number_of_molecules
+        data_log['PotEng'] = data_log['PotEng'] * 4.184 / number_of_molecules
+        data_log['TotEng'] = data_log['TotEng'] * 4.184 / number_of_molecules
+
+        if log_min is not None:
+            data_log = data_log[data_log['Time'] >= log_min]
+
+
         stats_df = data_log.iloc[:, 2:].agg(['mean', 'sem'])
         # Transpose the result for better visualization
         stats_df = stats_df.transpose().reset_index()
@@ -108,27 +126,27 @@ def update_variable_graph(contents):
         stats_df['Lower'] = (stats_df['Mean'] - stats_df['Error']).round(5)
     
         return html.Div(className='row', children=[
-                    html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter(data_log, 'Temp', 'rgb(99, 113, 241)'))],
+                    html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter(data_log, 'K', 'Temp', 'rgb(99, 113, 241)'))],
                     style = {'width': '30%'}
                     ),
 
-                    html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter(data_log, 'Density', 'rgb(222, 96, 70)'))],
+                    html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter(data_log, 'g/cm³', 'Density', 'rgb(222, 96, 70)'))],
                     style = {'width': '30%'}
                     ),
 
-                    html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter(data_log, 'KinEng', 'rgb(91, 200, 154)'))],
+                    html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter(data_log, 'kJ/mol', 'KinEng', 'rgb(91, 200, 154)'))],
                     style = {'width': '30%'}
                     ),
                 ]), html.Div(className='row', children=[
-                    html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter(data_log, 'PotEng', 'rgb(160, 106, 242)'))],
+                    html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter(data_log, 'kJ/mol', 'PotEng', 'rgb(160, 106, 242)'))],
                     style = {'width': '30%'}
                     ),
 
-                    html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter(data_log, 'TotEng', 'rgb(243, 164, 103)'))],
+                    html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter(data_log, 'kJ/mol', 'TotEng', 'rgb(243, 164, 103)'))],
                     style = {'width': '30%'}
                     ),
 
-                    html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter(data_log, 'Volume', 'rgb(97, 209, 239)'))],
+                    html.Div(className='three columns', children=[dcc.Graph(figure=fig_parameter(data_log, 'Å³','Volume', 'rgb(97, 209, 239)'))],
                     style = {'width': '30%'}
                     ),
                 ]), html.Div(className='row', children=[
@@ -162,7 +180,13 @@ def update_msd_figure(contents, msd_min):
         )
         msd_column_names = ["TimeStep", "<x^2>", "<y^2>", "<z^2>", "<R^2>"]
         data_msd.columns = msd_column_names
+        # Convert from fs to sec
         data_msd['Time'] = data_msd['TimeStep'] * 10 ** -15
+        # Convert from squared Angstrom to squared meters
+        data_msd['<x^2>'] = data_msd['<x^2>'] * 10 ** -20
+        data_msd['<y^2>'] = data_msd['<y^2>'] * 10 ** -20
+        data_msd['<z^2>'] = data_msd['<z^2>'] * 10 ** -20
+        data_msd['<R^2>'] = data_msd['<R^2>'] * 10 ** -20
 
     
         if msd_min is not None:
