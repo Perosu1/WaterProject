@@ -227,9 +227,23 @@ def update_RDF_from_upload(contents):
         rdf_column_names = ["Row", "Distance", "HH RDF", "HH CN", "HO RDF", "HO CN", "OH RDF", "OH CN", "OO RDF", "OO CN"]
         data_rdf.columns = rdf_column_names
 
-        rdf_plot = px.line(data_rdf, x = 'Distance', y =  [var for var in rdf_column_names if var.endswith("RDF")])
+        rdf_plot = px.line(
+            data_rdf,
+            x = 'Distance',
+            y =  [var for var in rdf_column_names if var.endswith("RDF")],
+            labels = {
+                'Distance': 'Distance (Å)',
+                }
+        )
 
-        cn_plot = px.line(data_rdf, x = 'Distance', y =  [var for var in rdf_column_names if var.endswith("CN")])
+        cn_plot = px.line(
+            data_rdf,
+            x = 'Distance',
+            y =  [var for var in rdf_column_names if var.endswith("CN")],
+            labels = {
+                'Distance': 'Distance (Å)',
+            }
+        )
 
         return rdf_plot, cn_plot
     
